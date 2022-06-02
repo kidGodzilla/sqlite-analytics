@@ -4,7 +4,7 @@ A simple analytics implementation that collects and serves data from a static CD
 
 ![Screenshot](screenshot.jpg)
 
-This is a ready-to-deploy package for [SQLite Analytics](https://analytics.servers.do/) is written in [Vue 3](https://v3.vuejs.org/).
+This is a ready-to-deploy package for [SQLite Analytics](https://analytics.servers.do/) is written in [Vue 3](https://v3.vuejs.org/) & [Express](https://expressjs.com/). The only dependency is persistent storage (for SQLite).
 
 This project makes use of [sql.js-httpvfs](https://github.com/phiresky/sql.js-httpvfs) and sqlite for the database.
 
