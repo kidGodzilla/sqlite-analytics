@@ -1,0 +1,36 @@
+{
+  "dependencies": {
+    "better-sqlite3": "^7.5.1",
+    "cors": "^2.8.5",
+    "crypto-js": "^4.1.1",
+    "dotenv": "^16.0.0",
+    "express": "^4.18.0",
+    "geoip-lite": "^1.4.5",
+    "ip-anonymize": "^0.1.0",
+    "mobile-detect": "^1.4.5",
+    "node-schedule": "^2.1.0",
+    "rate-limiter-flexible": "^2.3.7",
+    "request-ip": "^2.1.3",
+    "ua-parser": "^0.3.5",
+    "url-parse": "^1.5.10"
+  },
+  "name": "sqlite-analytics-dist",
+  "description": "",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": "git push dokku main:master",
+    "start": "node ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kidGodzilla/plausible-simple-backend.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kidGodzilla/plausible-simple-backend/issues"
+  },
+  "homepage": "https://github.com/kidGodzilla/plausible-simple-backend#readme"
+}
