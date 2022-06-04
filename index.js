@@ -20,7 +20,7 @@ const fs = require('fs');
 let drop = 0;
 let db;
 
-const server_encryption_string = process.env.ENCSTR || '';
+const server_encryption_string = process.env.ENCSTR || 'defaultencryptionstring';
 const debug = process.env.DEBUG || false;
 const PORT = process.env.PORT || 5001;
 const delete_older_data = false;
@@ -129,6 +129,7 @@ function ready(cb) {
                     out.referer_protocol = parsed.protocol;
                     out.referer_pathname = parsed.pathname;
                     out.referer_host = parsed.host;
+                    out.referer_url = part;
 
 
                 } else if (format[i] === 'url') {
@@ -161,8 +162,10 @@ function ready(cb) {
                 if (geo.country) out.country_code = geo.country;
             }
 
+            if (!out.referer_pathname) out.referer_pathname = '';
             if (!out.session_length) out.session_length = 0;
             if (!out.referer_host) out.referer_host = '';
+            if (!out.referer_url) out.referer_url = '';
             out.status_code = parseInt(out.status_code);
             if (!out.event) out.event = 'pageview';
             if (!out.pageviews) out.pageviews = 0;
@@ -180,6 +183,7 @@ function ready(cb) {
             if (AES_SIV_Encrypter) {
                 if (out.referer_pathname) out.referer_pathname = AES_SIV_Encrypter.encrypt(out.referer_pathname).toString();
                 if (out.referer_host) out.referer_host = AES_SIV_Encrypter.encrypt(out.referer_host).toString();
+                if (out.referer_url) out.referer_url = AES_SIV_Encrypter.encrypt(out.referer_url).toString();
                 out.pathname = AES_SIV_Encrypter.encrypt(out.pathname).toString();
                 out.host = AES_SIV_Encrypter.encrypt(out.host).toString();
                 out.url = AES_SIV_Encrypter.encrypt(out.url).toString();
@@ -285,7 +289,9 @@ function ready(cb) {
         utm_medium TEXT,
         utm_content TEXT,
         utm_campaign TEXT,
-        utm_term TEXT
+        utm_term TEXT,
+        referer_pathname TEXT,
+        referer_url TEXT
     )`);
 
     stmt.run();
@@ -311,7 +317,8 @@ function ready(cb) {
     }
 
     // addColumn('hour', 'INTEGER');
-    // addColumn('utm_source', 'TEXT');
+    addColumn('referer_pathname', 'TEXT');
+    addColumn('referer_url', 'TEXT');
 
     // Add indexes
     function addIndex(column, table = 'visits') {
@@ -337,6 +344,8 @@ function ready(cb) {
     addIndex('os');
     addIndex('country_code');
     addIndex('referer_host');
+    addIndex('referer_pathname');
+    addIndex('referer_url');
     addIndex('headless');
     addIndex('bot');
     // addIndex('width');
@@ -395,7 +404,9 @@ function ready(cb) {
         utm_medium,
         utm_content,
         utm_campaign,
-        utm_term
+        utm_term,
+        referer_pathname,
+        referer_url
     ) VALUES (
         @unique_request_id, 
         @iso_date,
@@ -432,7 +443,9 @@ function ready(cb) {
         @utm_medium,
         @utm_content,
         @utm_campaign,
-        @utm_term
+        @utm_term,
+        @referer_pathname,
+        @referer_url
     )`);
 
     // Insert via prepared statement
@@ -592,6 +605,7 @@ function performMonthlySummarization(domain, lastMonth) {
     data.country_code = queryCounts('country_code', whereClause);
     data.device_family = queryCounts('device_family', whereClause);
     data.referer_host = queryCounts('referer_host', whereClause);
+    data.referer_url = queryCounts('referer_url', whereClause);
     data.browser = queryCounts('browser', whereClause);
     data.pathname = queryCounts('pathname', whereClause);
     data.is_new = queryCounts('is_new', whereClause);
@@ -608,6 +622,7 @@ function performMonthlySummarization(domain, lastMonth) {
     data.country_code__visitors = queryCounts('country_code', whereClause, 'count(DISTINCT ip)');
     data.device_family__visitors = queryCounts('device_family', whereClause, 'count(DISTINCT ip)');
     data.referer_host__visitors = queryCounts('referer_host', whereClause, 'count(DISTINCT ip)');
+    data.referer_url__visitors = queryCounts('referer_url', whereClause, 'count(DISTINCT ip)');
     data.browser__visitors = queryCounts('browser', whereClause, 'count(DISTINCT ip)');
     data.pathname__visitors = queryCounts('pathname', whereClause, 'count(DISTINCT ip)');
     data.is_new__visitors = queryCounts('is_new', whereClause, 'count(DISTINCT ip)');
