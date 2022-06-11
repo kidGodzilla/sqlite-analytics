@@ -14,15 +14,17 @@
     function event(name, value) {
         if (location.pathname === lastPathname) return;
 
-        var sessionCount = 0, viewCount = 0, sessionTime = 0, isNew = 1;
+        var sessionCount = 0, viewCount = 0, sessionTime = 0, sessionId = 0, isNew = 1;
 
         try {
+            sessionId = (sessionStorage.getItem('_sessionId') || Math.random().toString(36).substr(2));
             sessionCount = (parseInt(localStorage.getItem('_implausible_sessions')) || 0);
             sessionTime = (parseInt(sessionStorage.getItem('_sessionTime')) || 1);
             viewCount = (parseInt(sessionStorage.getItem('_viewCount')) || 0);
             if (sessionCount) isNew = 0;
 
             if (!viewCount && !name) localStorage.setItem('_implausible_sessions', ++sessionCount);
+            if (sessionId) sessionStorage.setItem('_sessionId', sessionId);
             if (!name) sessionStorage.setItem('_viewCount', ++viewCount);
         } catch(e){}
 
@@ -34,7 +36,7 @@
         var lang = navigator.language || navigator.languages[0] || '';
         var img = document.createElement("img");
 
-        var url = `${ BASE_URL }/o.png?host=${ encodeURIComponent(host) }&referrer=${ encodeURIComponent(referrer) }&href=${ encodeURIComponent(href) }&width=${ width }&bot=${ isBot ? 1 : 0 }&headless=${ isHeadless ? 1 : 0 }&load=${ loadTime }&views=${ viewCount }&time=${ sessionTime }&lang=${ lang }&new=${ isNew }&session=${ sessionCount }&v=${ rand }`;
+        var url = `${ BASE_URL }/o.png?host=${ encodeURIComponent(host) }&referrer=${ encodeURIComponent(referrer) }&href=${ encodeURIComponent(href) }&width=${ width }&bot=${ isBot ? 1 : 0 }&headless=${ isHeadless ? 1 : 0 }&load=${ loadTime }&views=${ viewCount }&time=${ sessionTime }&lang=${ lang }&new=${ isNew }&session=${ sessionCount }&sid=${ sessionId }&v=${ rand }`;
         if (window.__analytics_encryption_key) url += `&key=${ encodeURIComponent(window.__analytics_encryption_key) }`;
         if (value) url += `&value=${ value }`;
         if (name) url += `&event=${ name }`;
