@@ -84,6 +84,7 @@ function ready(cb) {
                 if (parsed.query.value) out.value = parsed.query.value;
                 if (parsed.query.lang) out.lang = parsed.query.lang;
                 if (parsed.query.href) parts[7] = parsed.query.href;
+                if (parsed.query.sid) out.sid = parsed.query.sid;
 
                 out.session = parseInt(parsed.query.session);
                 out.is_new = parseInt(parsed.query.new);
@@ -176,6 +177,7 @@ function ready(cb) {
             if (!out.value) out.value = '';
             if (!out.width) out.width = 0;
             if (!out.lang) out.lang = '';
+            if (!out.sid) out.sid = '';
             if (!out.bot) out.bot = 0;
 
 
@@ -291,7 +293,8 @@ function ready(cb) {
         utm_campaign TEXT,
         utm_term TEXT,
         referer_pathname TEXT,
-        referer_url TEXT
+        referer_url TEXT,
+        session_id TEXT
     )`);
 
     stmt.run();
@@ -319,6 +322,7 @@ function ready(cb) {
     // addColumn('hour', 'INTEGER');
     addColumn('referer_pathname', 'TEXT');
     addColumn('referer_url', 'TEXT');
+    addColumn('session_id', 'TEXT');
 
     // Add indexes
     function addIndex(column, table = 'visits') {
@@ -350,6 +354,7 @@ function ready(cb) {
     addIndex('bot');
     // addIndex('width');
     addIndex('session_length');
+    addIndex('session_id');
     addIndex('pageviews');
     addIndex('load_time');
     addIndex('lang');
@@ -406,7 +411,8 @@ function ready(cb) {
         utm_campaign,
         utm_term,
         referer_pathname,
-        referer_url
+        referer_url,
+        session_id
     ) VALUES (
         @unique_request_id, 
         @iso_date,
@@ -445,7 +451,8 @@ function ready(cb) {
         @utm_campaign,
         @utm_term,
         @referer_pathname,
-        @referer_url
+        @referer_url,
+        @sid
     )`);
 
     // Insert via prepared statement
