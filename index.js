@@ -190,6 +190,9 @@ function ready(cb) {
                 out.host = AES_SIV_Encrypter.encrypt(out.host).toString();
                 out.url = AES_SIV_Encrypter.encrypt(out.url).toString();
 
+                if (out.event && out.event !== 'pageview') out.event = AES_SIV_Encrypter.encrypt(out.event).toString();
+                if (out.value) out.value = AES_SIV_Encrypter.encrypt(out.value).toString();
+
                 if (out.utm_campaign) out.utm_campaign = AES_SIV_Encrypter.encrypt(out.utm_campaign).toString();
                 if (out.utm_content) out.utm_content = AES_SIV_Encrypter.encrypt(out.utm_content).toString();
                 if (out.utm_medium) out.utm_medium = AES_SIV_Encrypter.encrypt(out.utm_medium).toString();
