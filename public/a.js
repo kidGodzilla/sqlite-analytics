@@ -12,7 +12,7 @@
     }
 
     function event(name, value) {
-        if (location.pathname === lastPathname) return;
+        if (location.pathname === lastPathname && !name) return;
 
         var sessionCount = 0, viewCount = 0, sessionTime = 0, sessionId = 0, isNew = 1;
 
@@ -40,7 +40,9 @@
         if (window.__analytics_encryption_key) url += `&key=${ encodeURIComponent(window.__analytics_encryption_key) }`;
         if (value) url += `&value=${ value }`;
         if (name) url += `&event=${ name }`;
-        lastPathname = location.pathname;
+
+        if (!name) lastPathname = location.pathname;
+
         img.src = url;
 
         img.onerror = async function() {
