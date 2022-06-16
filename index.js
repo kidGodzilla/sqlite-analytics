@@ -567,6 +567,16 @@ app.get('/o.png', function (req, res) {
     res.sendFile('./public/o.png', { root: __dirname });
 });
 
+// Serve the dynamic analytics collection script
+if (process.env.ANALYTICS_COLLECTION_BASE_URL) {
+    app.get('/a.js', function (req, res) {
+        let ajs = fs.readFileSync('./public/a.js', 'utf8');
+        if (process.env.ANALYTICS_COLLECTION_BASE_URL) ajs = ajs.split('https://analytics.servers.do').join(process.env.ANALYTICS_COLLECTION_BASE_URL);
+        res.setHeader('content-type', 'application/javascript'); // ; charset=UTF-8
+        res.send(ajs);
+    });
+}
+
 // Record an analytics hit
 app.get('/o', function (req, res) {
     analyticsHit(req, res);
