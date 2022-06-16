@@ -8,6 +8,7 @@ const CryptoJS_SIV = require('./siv.js');
 const { randomUUID } = require('crypto');
 const requestIp = require('request-ip');
 const SHA3 = require('crypto-js/sha3');
+const request = require('superagent');
 const uaparser = require('ua-parser');
 const CryptoJS = require('crypto-js');
 const AES = require('crypto-js/aes');
@@ -21,6 +22,7 @@ let drop = 0;
 let db;
 
 const server_encryption_string = process.env.ENCSTR || 'defaultencryptionstring';
+const days_of_logs_to_fetch = process.env.DAYS_TO_FETCH || 3;
 const debug = process.env.DEBUG || false;
 const PORT = process.env.PORT || 5001;
 const delete_older_data = false;
@@ -221,6 +223,32 @@ function ready(cb) {
         stmt.run();
     }
 
+    // Get logs based on a date object
+    function getLogs(D, callback) {
+        if (!D) return;
+
+        if (typeof D === 'string' || typeof D === 'number') D = new Date(D);
+
+        let iso_date = `${ D.toISOString().slice(5, 10) }-${ D.toISOString().slice(2, 4) }`;
+
+        if (process.env.PULL_ZONE_ID && process.env.ACCESS_KEY && iso_date) {
+            console.log(`Downloading (${ iso_date }) log data from Bunny CDN`);
+            let rand = (Math.random() + 1).toString(36).substring(5);
+            let url = `https://logging.bunnycdn.com/${ iso_date }/${ process.env.PULL_ZONE_ID }.log?v=${ rand }`;
+            console.log('Fetching:', url);
+
+            request.get(url)
+                .set('AccessKey', process.env.ACCESS_KEY)
+                .set('accept', 'json')
+                .end((err, res) => {
+                    console.log(`Parsing ${ iso_date } logs & Updating Database`);
+                    parseLogs(res.text);
+
+                    if (callback && typeof callback === 'function') callback(res.text);
+                });
+        }
+    }
+
     function constructDb() {
         // Use SQLite3 Database
         db = new Database(fs.existsSync('/storage') ? '/storage/analytics.sqlite3' : './public/analytics.sqlite3'); // , { verbose: console.log }
@@ -330,10 +358,16 @@ function ready(cb) {
     // Add indexes
     function addIndex(column, table = 'visits') {
         try {
-            let stmt = db.prepare(`CREATE INDEX idx_${ column } ON ${ table } (${ column });`);
+            let sql = '';
+            if (Array.isArray(column)) {
+                sql = `CREATE INDEX idx_${ column.join('_') } ON ${ table } (${ column.join(', ') });`
+            } else {
+                sql = `CREATE INDEX idx_${ column } ON ${ table } (${ column });`
+            }
+            let stmt = db.prepare(sql);
             stmt.run();
         } catch(e) {
-            console.log(`index idx_${ column } already exists, skipping`);
+            console.log(`index idx_${ Array.isArray(column) ? column.join('_') : column } already exists, skipping`);
         }
     }
 
@@ -370,6 +404,12 @@ function ready(cb) {
 
     addIndex('hour', 'summaries');
     addIndex('host', 'summaries');
+
+    // Composite indexes
+    addIndex(['host', 'date']);
+    addIndex(['host', 'date', 'event']);
+    addIndex(['host', 'date', 'ip']);
+    addIndex(['host', 'date', 'event', 'ip']);
 
     // Vacuum again
     stmt = db.prepare(`vacuum;`);
@@ -482,10 +522,10 @@ function ready(cb) {
 
     if (cb && typeof cb === 'function') cb();
 
-    return { parseLogs, insertSummary };
+    return { parseLogs, insertSummary, getLogs };
 }
 
-const { parseLogs, insertSummary } = ready(() => {
+const { parseLogs, insertSummary, getLogs } = ready(() => {
     const server = app.listen(PORT, function () {
         console.log(`App listening on port ${ PORT }!`);
         server.keepAliveTimeout = 0;
@@ -538,9 +578,30 @@ app.use(express.static('frontend'));
 app.use(express.static('/storage'));
 app.use(express.static('public'));
 
+// Job to fetch logs from BunnyCDN and insert into the database
+function fetchLogsFromBunnyCDN() {
+    if (!process.env.PULL_ZONE_ID || !process.env.ACCESS_KEY) return;
+
+    // Fetch days_of_logs_to_fetch days of logs
+    for (let i = 0; i < days_of_logs_to_fetch; i++) {
+        let thisD = new Date();
+        thisD = thisD.setDate(thisD.getDate() - i);
+        getLogs(thisD);
+    }
+}
+
+schedule.scheduleJob('25 * * * *', fetchLogsFromBunnyCDN);
+setTimeout(fetchLogsFromBunnyCDN, 45000);
+
+// Temporarily include for testing
+// app.get('/logs/:date', function (req, res) {
+//     let { date } = req.params;
+//     getLogs(date, (logs) => {
+//         res.send(logs);
+//     });
+// });
 
 // JOB TO CLEANUP OLD DATA AND MOVE DATABASE TO analytics.sqlite3.png
-
 function rotateDatabaseToPNG() {
     // Cleanup old rows, vacuum
     const priorDate = new Date(new Date().setDate((new Date()).getDate() - 32));
@@ -565,11 +626,17 @@ function rotateDatabaseToPNG() {
     });
 }
 
+// Every 5 minutes the sqlite db gets copied to analytics.sqlite3.png
+// Most servers automatically enable range requests for images -- simplifying setup
+
 schedule.scheduleJob('*/5 * * * *', rotateDatabaseToPNG);
 setTimeout(rotateDatabaseToPNG, 20000);
 
-
-// DATA SUMMARIZATION JOB
+// **************************************************
+//  DATA SUMMARIZATION JOB                           |
+// --------------------------------------------------|
+// Todo: This will probably be removed at some point |
+// **************************************************
 
 function lastMonthString() {
     let D = new Date();
