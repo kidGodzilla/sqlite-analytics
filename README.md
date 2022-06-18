@@ -26,10 +26,13 @@ https://analytics.servers.do/?host=analytics.servers.do&range=30
 
 ### Environment Variables
 
+You can find the latest version of this in our `env.example`
+
 `.env` Recommended settings (optional):
 
 ```env
 ENCSTR='pickareallylongrandomencryptionkeystring'
+ANALYTICS_COLLECTION_BASE_URL=''
 PORT=5000
 ```
 
