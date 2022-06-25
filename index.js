@@ -163,11 +163,14 @@ function ready(cb) {
                 if (!geo) return;
 
                 if (geo.country) out.country_code = geo.country;
+                if (geo.region) out.region = geo.region;
+                if (geo.city) out.city = geo.city;
             }
 
             if (!out.referer_pathname) out.referer_pathname = '';
             if (!out.session_length) out.session_length = 0;
             if (!out.referer_host) out.referer_host = '';
+            if (!out.country_code) out.country_code = '';
             if (!out.referer_url) out.referer_url = '';
             out.status_code = parseInt(out.status_code);
             if (!out.event) out.event = 'pageview';
@@ -175,9 +178,11 @@ function ready(cb) {
             if (!out.load_time) out.load_time = 0;
             if (!out.headless) out.headless = 0;
             if (!out.session) out.session = 0;
+            if (!out.region) out.region = '';
             if (!out.is_new) out.is_new = 0;
             if (!out.value) out.value = '';
             if (!out.width) out.width = 0;
+            if (!out.city) out.city = '';
             if (!out.lang) out.lang = '';
             if (!out.sid) out.sid = '';
             if (!out.bot) out.bot = 0;
@@ -200,6 +205,9 @@ function ready(cb) {
                 if (out.utm_medium) out.utm_medium = AES_SIV_Encrypter.encrypt(out.utm_medium).toString();
                 if (out.utm_source) out.utm_source = AES_SIV_Encrypter.encrypt(out.utm_source).toString();
                 if (out.utm_term) out.utm_term = AES_SIV_Encrypter.encrypt(out.utm_term).toString();
+
+                if (out.region) out.region = AES_SIV_Encrypter.encrypt(out.region).toString();
+                if (out.city) out.city = AES_SIV_Encrypter.encrypt(out.city).toString();
 
                 out.remote_ip = CryptoJS.MD5(out.remote_ip).toString();
             } else {
@@ -325,7 +333,9 @@ function ready(cb) {
         utm_term TEXT,
         referer_pathname TEXT,
         referer_url TEXT,
-        session_id TEXT
+        session_id TEXT,
+        region TEXT,
+        city TEXT
     )`);
 
     stmt.run();
@@ -354,6 +364,8 @@ function ready(cb) {
     addColumn('referer_pathname', 'TEXT');
     addColumn('referer_url', 'TEXT');
     addColumn('session_id', 'TEXT');
+    addColumn('region', 'TEXT');
+    addColumn('city', 'TEXT');
 
     // Add indexes
     function addIndex(column, table = 'visits') {
@@ -401,6 +413,8 @@ function ready(cb) {
     addIndex('utm_content');
     addIndex('utm_campaign');
     addIndex('utm_term');
+    addIndex('region');
+    addIndex('city');
 
     addIndex('hour', 'summaries');
     addIndex('host', 'summaries');
@@ -455,7 +469,9 @@ function ready(cb) {
         utm_term,
         referer_pathname,
         referer_url,
-        session_id
+        session_id,
+        region,
+        city
     ) VALUES (
         @unique_request_id, 
         @iso_date,
@@ -495,7 +511,9 @@ function ready(cb) {
         @utm_term,
         @referer_pathname,
         @referer_url,
-        @sid
+        @sid,
+        @region,
+        @city
     )`);
 
     // Insert via prepared statement
@@ -567,21 +585,21 @@ app.get('/o.png', function (req, res) {
     res.sendFile('./public/o.png', { root: __dirname });
 });
 
-// Serve the dynamic analytics collection script
-if (process.env.ANALYTICS_COLLECTION_BASE_URL) {
-    app.get('/a.js', function (req, res) {
-        let ajs = fs.readFileSync('./public/a.js', 'utf8');
-        if (process.env.ANALYTICS_COLLECTION_BASE_URL) ajs = ajs.split('https://analytics.servers.do').join(process.env.ANALYTICS_COLLECTION_BASE_URL);
-        res.setHeader('content-type', 'application/javascript'); // ; charset=UTF-8
-        res.send(ajs);
-    });
-}
-
 // Record an analytics hit
 app.get('/o', function (req, res) {
     analyticsHit(req, res);
     res.send('ok');
 });
+
+// Serve the dynamic analytics collection script
+if (process.env.ANALYTICS_COLLECTION_BASE_URL) {
+    app.get('/a.js', function (req, res) {
+        let ajs = fs.readFileSync('./public/a.js', 'utf8');
+        ajs = ajs.split('https://analytics.servers.do').join(process.env.ANALYTICS_COLLECTION_BASE_URL);
+        res.setHeader('content-type', 'application/javascript; charset=UTF-8');
+        res.send(ajs);
+    });
+}
 
 // Static directories
 app.use(express.static('frontend'));
