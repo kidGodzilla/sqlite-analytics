@@ -26,10 +26,13 @@ https://analytics.servers.do/?host=analytics.servers.do&range=30
 
 ### Environment Variables
 
+You can find the latest version of this in our `env.example`
+
 `.env` Recommended settings (optional):
 
 ```env
 ENCSTR='pickareallylongrandomencryptionkeystring'
+ANALYTICS_COLLECTION_BASE_URL=''
 PORT=5000
 ```
 
@@ -37,8 +40,16 @@ PORT=5000
 
 Persistent storage should be mounted to `/storage`. The database will be written to `/storage/analytics.sqlite3`.
 
+---
 
+## Using Bunny CDN as a collector 
+You can scale this or reduce costs by opting to use Bunny CDN as your collector (similar to a [Snowplow collector](https://docs.snowplowanalytics.com/docs/getting-started-on-snowplow-open-source/setup-snowplow-on-aws/setup-the-snowplow-collector/)). Instead of running a web service which recieves each analytics hit, these are pulled in a batch job from your CDN logs. Can be incredibly cheap to run.
 
+1. Create a Bunny CDN pull zone, and point it to where you've deployed this repo. You should be able to access `<bucketname>.b-cdn.net/o.png`.
+2. Either configure your `BASE_URL` in `a.js` to point to `https://<bucketname>.b-cdn.net` -- or configure this in your env variable, setting `ANALYTICS_COLLECTION_BASE_URL` to `https://<bucketname>.b-cdn.net`.
+3. Add your `PULL_ZONE_ID` to your ENV variables. This is the ID for your pull zone, usually a 6-digit number.
+4. Add your `ACCESS_KEY` to your ENV variables. This is your API key in your [Account tab](https://panel.bunny.net/account).
+5. That's it! Sites including `a.js` will send their analytics hits to Bunny.net, and every hour your site will fetch logs & refresh your analytics dashboard.
 
 ---
 
@@ -65,4 +76,6 @@ https://github.com/kidGodzilla/unsimple-analytics
 - [x] Custom date ranges
 - [x] Clickable charts
 - [x] 12-month view
-- [ ] Composite indexes
+- [x] Composite indexes
+- [x] Themes
+- [x] Iframe embed options
