@@ -1,5 +1,6 @@
 require('dotenv').config();
 
+const regionCodeLookup = require('./regionLookup.js');
 const MobileDetect = require('mobile-detect');
 const Database = require('better-sqlite3');
 const anonymize = require('ip-anonymize');
@@ -163,8 +164,15 @@ function ready(cb) {
                 if (!geo) return;
 
                 if (geo.country) out.country_code = geo.country;
+                if (geo.ll) out.latlong = geo.ll.join(',');
                 if (geo.region) out.region = geo.region;
                 if (geo.city) out.city = geo.city;
+
+                // Try looking up the region code
+                if (geo.region && geo.country) {
+                    const matches = regionCodeLookup(geo.region, geo.country);
+                    if (matches[0] && matches[0].name) out.region = matches[0].name;
+                }
             }
 
             if (!out.referer_pathname) out.referer_pathname = '';
@@ -177,6 +185,7 @@ function ready(cb) {
             if (!out.pageviews) out.pageviews = 0;
             if (!out.load_time) out.load_time = 0;
             if (!out.headless) out.headless = 0;
+            if (!out.latlong) out.latlong = '';
             if (!out.session) out.session = 0;
             if (!out.region) out.region = '';
             if (!out.is_new) out.is_new = 0;
@@ -206,6 +215,7 @@ function ready(cb) {
                 if (out.utm_source) out.utm_source = AES_SIV_Encrypter.encrypt(out.utm_source).toString();
                 if (out.utm_term) out.utm_term = AES_SIV_Encrypter.encrypt(out.utm_term).toString();
 
+                if (out.latlong) out.latlong = AES_SIV_Encrypter.encrypt(out.latlong).toString();
                 if (out.region) out.region = AES_SIV_Encrypter.encrypt(out.region).toString();
                 if (out.city) out.city = AES_SIV_Encrypter.encrypt(out.city).toString();
 
@@ -335,7 +345,8 @@ function ready(cb) {
         referer_url TEXT,
         session_id TEXT,
         region TEXT,
-        city TEXT
+        city TEXT,
+        latlong TEXT
     )`);
 
     stmt.run();
@@ -364,6 +375,7 @@ function ready(cb) {
     addColumn('referer_pathname', 'TEXT');
     addColumn('referer_url', 'TEXT');
     addColumn('session_id', 'TEXT');
+    addColumn('latlong', 'TEXT');
     addColumn('region', 'TEXT');
     addColumn('city', 'TEXT');
 
@@ -413,6 +425,7 @@ function ready(cb) {
     addIndex('utm_content');
     addIndex('utm_campaign');
     addIndex('utm_term');
+    addIndex('latlong');
     addIndex('region');
     addIndex('city');
 
@@ -471,7 +484,8 @@ function ready(cb) {
         referer_url,
         session_id,
         region,
-        city
+        city,
+        latlong
     ) VALUES (
         @unique_request_id, 
         @iso_date,
@@ -513,7 +527,8 @@ function ready(cb) {
         @referer_url,
         @sid,
         @region,
-        @city
+        @city,
+        @latlong
     )`);
 
     // Insert via prepared statement
